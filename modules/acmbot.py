@@ -4,10 +4,14 @@
 
 import logging
 import argparse
+import urllib
 from StringIO import StringIO
 from kitnirc.modular import Module
-
+from bs4 import BeautifulSoup
+ 
 _log = logging.getLogger(__name__)
+
+ACM_BASE_URL = 'http://acm.pdx.edu'
 
 parser_output = StringIO()
 
@@ -49,14 +53,15 @@ class AcmBotModule(Module):
         
         if args.subparser == "!events":
             
-            message = "todo"
-
-            # The 'reply' function automatically sends a replying PM if
-            # the bot was PM'd, or addresses the user in a channel who
-            # addressed the bot in a channel.
-            client.reply(recipient, actor, message)
-            
-            reset_parser_output()
+            html = urllib.urlopen(ACM_BASE_URL + '/events.php').read()
+            soup = BeautifulSoup(html)
+            messages = [
+                soup.ui.text.replace('\n', '').strip(),
+                ACM_BASE_URL + soup.ui.a['href'],
+            ]
+            for message in messages:
+                client.reply(recipient, actor, message)
+                reset_parser_output()
 
         # Stop any other modules from handling this message.
         return True
