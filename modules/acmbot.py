@@ -20,7 +20,7 @@ class ArgumentParser(argparse.ArgumentParser):
 
 parser = ArgumentParser()
 subparsers = parser.add_subparsers(dest='subparser')
-subparser_product = subparsers.add_parser('!events')
+subparser_events = subparsers.add_parser('!events')
 
 def reset_parser_output():
     parser_output.seek(0, 0)
@@ -34,6 +34,7 @@ class AcmBotModule(Module):
         try:
             args = parser.parse_args(message.split())
         except (NameError, TypeError):
+            _log.debug("message not reconized %r", message)
             reset_parser_output()
             return
 
