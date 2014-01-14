@@ -5,24 +5,14 @@
 import logging
 import argparse
 import urllib
-from StringIO import StringIO
 from kitnirc.modular import Module
 from bs4 import BeautifulSoup
 from botparse import BotParse
  
 _log = logging.getLogger(__name__)
 
-ACM_EVENTS_YAML = 'https://raw2.github.com/pdxacm/acm.pdx.edu/master/files/events.yaml'
-ACM_BASE_URL = 'http://acm.pdx.edu'
-
-parser_output = StringIO()
-
 parser = BotParse()
 command_events = parser.add_command('!events')
-
-def reset_parser_output():
-    parser_output.seek(0, 0)
-    parser_output.truncate()
 
 class AcmBotModule(Module):
     
@@ -34,19 +24,15 @@ class AcmBotModule(Module):
         self.recipient = recipient
         self.message = message
 
+        config = self.controller.config
+
         # Only pay attention if addressed directly in channels
         try:
             args = parser.parse_args(self.message.split())
         except (NameError, TypeError):
             _log.debug("message not reconized %r", self.message)
-            reset_parser_output()
             return
 
-        if parser_output.getvalue():
-            parser_output.seek(0, 0)
-            parser_output.truncate()
-            return
-            
         # Log a message to the INFO log level - see here for more details:
         # http://docs.python.org/2/library/logging.html
         _log.info("Responding to %r in %r", self.actor, self.recipient)
@@ -55,18 +41,25 @@ class AcmBotModule(Module):
             if args.help:
                 messages = command_events.format_help().split('\n')
             else:
-                html = urllib.urlopen(ACM_BASE_URL + '/events.php').read()
+                if not config.has_section("acmbot"):
+                    _log.info("No config section for acmbot")
+                    return
+                if config.has_option("acmbot", "base_url"):
+                    base_url = config.get("acmbot", "base_url")
+                    print(base_url)
+                else:
+                    return
+                html = urllib.urlopen(base_url + '/events.php').read()
                 soup = BeautifulSoup(html)
                 messages = [
                     soup.ui.text.replace('\n', '').strip(),
-                    ACM_BASE_URL + soup.ui.a['href'],
+                    base_url + soup.ui.a['href'],
                 ]
         elif args.command == "!help":
             messages = parser.format_help().split('\n')
 
         for message in messages:
             self.client.reply(self.recipient, self.actor, message)
-            reset_parser_output()
 
         # Stop any other modules from handling this message.
         return True
