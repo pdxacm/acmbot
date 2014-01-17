@@ -9,7 +9,7 @@ Bot for the PDX acm
 
 ```sh 
 # 1. Clone acmbot
-git clone https://github.com/cameronbwhite/acmbot.git
+git clone https://github.com/pdxacm/acmbot.git
 # 2. Enter Repo
 cd acmbot
 # 3. Create a virtual enviroment
