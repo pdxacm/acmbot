@@ -57,7 +57,9 @@ class AcmBotModule(Module):
                         '%m-%d-%Y',
                     ).date()
                 messages = []
-                events_html = urllib.urlopen(base_url + 'files/events.yaml').read()
+                events_html = urllib.urlopen(
+                    '{}/files/events.yaml'.format(base_url)
+                ).read()
                 events = yaml.load(events_html)
                 sorted_events = sorted(events, key=get_date, reverse=True)
                 current_events = takewhile(
@@ -67,7 +69,7 @@ class AcmBotModule(Module):
                 for i, event in enumerate(current_events):
                     messages.append(event['title'])
                     messages.append('{}/event.php?event={}'.format(
-                        base_url, str(len(events) - i),
+                        base_url, str(len(events) - i - 1),
                     ))
         elif args.command == "!help":
             messages = parser.format_help().split('\n')
