@@ -25,7 +25,7 @@ if __name__ == "__main__":
         install_requires = [
             'kitnirc',
             'BotParse',
-            'beautifulsoup4',
+            'pyyaml',
         ],
         include_package_data=True,
     )

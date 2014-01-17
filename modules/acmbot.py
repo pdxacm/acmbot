@@ -6,8 +6,11 @@ import logging
 import argparse
 import urllib
 from kitnirc.modular import Module
-from bs4 import BeautifulSoup
 from botparse import BotParse
+import yaml
+import datetime
+import urllib
+from itertools import takewhile
  
 _log = logging.getLogger(__name__)
 
@@ -18,7 +21,7 @@ class AcmBotModule(Module):
     
     @Module.handle("PRIVMSG")
     def messages(self, client, actor, recipient, message):
-
+    
         self.client = client
         self.actor = actor
         self.recipient = recipient
@@ -46,15 +49,26 @@ class AcmBotModule(Module):
                     return
                 if config.has_option("acmbot", "base_url"):
                     base_url = config.get("acmbot", "base_url")
-                    print(base_url)
                 else:
                     return
-                html = urllib.urlopen(base_url + '/events.php').read()
-                soup = BeautifulSoup(html)
-                messages = [
-                    soup.ui.text.replace('\n', '').strip(),
-                    base_url + soup.ui.a['href'],
-                ]
+                def get_date(entry):
+                    return datetime.datetime.strptime(
+                        entry['date'],
+                        '%m-%d-%Y',
+                    ).date()
+                messages = []
+                events_html = urllib.urlopen(base_url + 'files/events.yaml').read()
+                events = yaml.load(events_html)
+                sorted_events = sorted(events, key=get_date, reverse=True)
+                current_events = takewhile(
+                    lambda x: get_date(x) >= datetime.date.today(),
+                    sorted_events,
+                )
+                for i, event in enumerate(current_events):
+                    messages.append(event['title'])
+                    messages.append('{}/event.php?event={}'.format(
+                        base_url, str(len(events) - i),
+                    ))
         elif args.command == "!help":
             messages = parser.format_help().split('\n')
 
