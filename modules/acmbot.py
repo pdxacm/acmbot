@@ -16,6 +16,7 @@ _log = logging.getLogger(__name__)
 
 parser = BotParse()
 command_events = parser.add_command('!events')
+command_events.add_argument('--limit', type=int)
 
 class AcmBotModule(Module):
     
@@ -44,36 +45,54 @@ class AcmBotModule(Module):
             if args.help:
                 messages = command_events.format_help().split('\n')
             else:
-                if not config.has_section("acmbot"):
-                    _log.info("No config section for acmbot")
-                    return
-                if config.has_option("acmbot", "base_url"):
-                    base_url = config.get("acmbot", "base_url")
-                else:
-                    return
                 def get_date(entry):
                     return datetime.datetime.strptime(
                         entry['date'],
                         '%m-%d-%Y',
                     ).date()
-                messages = []
+
+                if not config.has_section("acmbot"):
+                    _log.info("No config section for acmbot")
+                    return
+
+                if config.has_option("acmbot", "base_url"):
+                    base_url = config.get("acmbot", "base_url")
+                else:
+                    return
+
+                if args.limit:
+                    events_limit = args.limit
+                elif config.has_option("acmbot", "events_limit"):
+                    events_limit = config.get("acmbot", "events_limit")
+                else:
+                    events_limit = None
+
                 events_html = urllib.urlopen(
                     '{}/files/events.yaml'.format(base_url)
                 ).read()
+
                 events = yaml.load(events_html)
-                sorted_events = sorted(events, key=get_date, reverse=True)
-                current_events = takewhile(
+                length_events = len(events)
+                events = sorted(events, key=get_date, reverse=True)
+                events = list(enumerate(takewhile(
                     lambda x: get_date(x) >= datetime.date.today(),
-                    sorted_events,
-                )
-                for i, event in enumerate(current_events):
+                    events,
+                )))
+                
+                if events_limit and events_limit >= 0:
+                    events = events[:events_limit]
+
+                messages = []
+                for i, event in events:
                     messages.append(event['title'])
                     messages.append('{}/event.php?event={}'.format(
-                        base_url, str(len(events) - i - 1),
+                        base_url, str(length_events - i - 1),
                     ))
+
         elif args.command == "!help":
             messages = parser.format_help().split('\n')
-
+        
+        # send messages
         for message in messages:
             self.client.reply(self.recipient, self.actor, message)
 
