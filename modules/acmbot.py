@@ -63,7 +63,10 @@ class AcmBotModule(Module):
                 if args.limit:
                     events_limit = args.limit
                 elif config.has_option("acmbot", "events_limit"):
-                    events_limit = config.get("acmbot", "events_limit")
+                    try:
+                        events_limit = int(config.get("acmbot", "events_limit"))
+                    except TypeError:
+                        events_limit = None
                 else:
                     events_limit = None
 
@@ -84,7 +87,9 @@ class AcmBotModule(Module):
 
                 messages = []
                 for i, event in events:
-                    messages.append(event['title'])
+                    messages.append('{} - {:%a, %b %d}'.format(
+                        event['title'], get_date(event),
+                    ))
                     messages.append('{}/event.php?event={}'.format(
                         base_url, str(length_events - i - 1),
                     ))
