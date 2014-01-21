@@ -86,7 +86,7 @@ class AcmBotModule(Module):
                     events = events[:events_limit]
 
                 messages = []
-                for i, event in events:
+                for i, event in reversed(events):
                     messages.append('{} - {:%a, %b %d}'.format(
                         event['title'], get_date(event),
                     ))
