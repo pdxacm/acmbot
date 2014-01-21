@@ -87,12 +87,26 @@ class AcmBotModule(Module):
 
                 messages = []
                 for i, event in reversed(events):
-                    messages.append('{} - {:%a, %b %d}'.format(
+                    
+                    if 'time' in event:
+                        time = get_time(event['time'])
+                    elif config.has_option("acmbot", "default_time"):
+                        time = get_time(config.get("acmbot", "default_time"))
+                    else:
+                        time = None
+
+                    message = '{} - {:%a, %b %d}'.format(
                         event['title'], get_date(event),
-                    ))
-                    messages.append('{}/event.php?event={}'.format(
+                    )
+
+                    if time:
+                        message += ' @ {:%I:%M%p}'.format(time)
+
+                    message += ' - {}/event.php?event={}'.format(
                         base_url, str(length_events - i - 1),
-                    ))
+                    )
+
+                    messages.append(message)
 
         elif args.command == "!help":
             messages = parser.format_help().split('\n')
@@ -103,5 +117,8 @@ class AcmBotModule(Module):
 
         # Stop any other modules from handling this message.
         return True
+
+def get_time(time_str):
+    return datetime.datetime.strptime(time_str, '%H:%M').time()
     
 module = AcmBotModule
