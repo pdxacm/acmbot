@@ -17,6 +17,8 @@ _log = logging.getLogger(__name__)
 parser = BotParse()
 command_events = parser.add_command('!events')
 command_events.add_argument('--limit', type=int)
+command_today = parser.add_command('!today')
+command_today.add_argument('--limit', type=int)
 
 class AcmBotModule(Module):
     
@@ -32,7 +34,7 @@ class AcmBotModule(Module):
 
         # Only pay attention if addressed directly in channels
         try:
-            args = parser.parse_args(self.message.split())
+            self.args = parser.parse_args(self.message.split())
         except (NameError, TypeError):
             _log.debug("message not reconized %r", self.message)
             return
@@ -41,74 +43,37 @@ class AcmBotModule(Module):
         # http://docs.python.org/2/library/logging.html
         _log.info("Responding to %r in %r", self.actor, self.recipient)
         
-        if args.command == "!events":
-            if args.help:
+        if self.args.command == "!events":
+            if self.args.help:
                 messages = command_events.format_help().split('\n')
             else:
-                def get_date(entry):
-                    return datetime.datetime.strptime(
-                        entry['date'],
-                        '%m-%d-%Y',
-                    ).date()
-
-                if not config.has_section("acmbot"):
-                    _log.info("No config section for acmbot")
-                    return
-
-                if config.has_option("acmbot", "base_url"):
-                    base_url = config.get("acmbot", "base_url")
-                else:
-                    return
-
-                if args.limit:
-                    events_limit = args.limit
-                elif config.has_option("acmbot", "events_limit"):
-                    try:
-                        events_limit = int(config.get("acmbot", "events_limit"))
-                    except TypeError:
-                        events_limit = None
-                else:
-                    events_limit = None
-
-                events_html = urllib.urlopen(
-                    '{}/files/events.yaml'.format(base_url)
-                ).read()
-
-                events = yaml.load(events_html)
-                length_events = len(events)
-                events = sorted(events, key=get_date, reverse=True)
-                events = list(enumerate(takewhile(
-                    lambda x: get_date(x) >= datetime.date.today(),
-                    events,
-                )))
-                
-                if events_limit and events_limit >= 0:
-                    events = events[:events_limit]
-
-                messages = []
-                for i, event in reversed(events):
-                    
-                    if 'time' in event:
-                        time = get_time(event['time'])
-                    elif config.has_option("acmbot", "default_time"):
-                        time = get_time(config.get("acmbot", "default_time"))
-                    else:
-                        time = None
-
-                    message = '{} - {:%a, %b %d}'.format(
-                        event['title'], get_date(event),
+                def sort(events):
+                    events = sorted(events, key=get_date, reverse=True)
+                    events = list(enumerate(takewhile(
+                        lambda x: get_date(x) >= datetime.date.today(),
+                        events,
+                    )))
+                    return events
+                messages = self.get_event_messages(sort)
+        
+        elif self.args.command == '!today':
+            if self.args.help:
+                messages = command_events.format_help().split('\n')
+            else:
+                def today_sort(events):
+                    events = sorted(events, key=get_date, reverse=True)
+                    events = list(enumerate(takewhile(
+                        lambda x: get_date(x) >= datetime.date.today(),
+                        events,
+                    )))
+                    events = filter(
+                        lambda (i, event): get_date(event) == datetime.date.today(),
+                        events
                     )
+                    return events
+                messages = self.get_event_messages(today_sort)
 
-                    if time:
-                        message += ' @ {:%I:%M%p}'.format(time)
-
-                    message += ' - {}/event.php?event={}'.format(
-                        base_url, str(length_events - i - 1),
-                    )
-
-                    messages.append(message)
-
-        elif args.command == "!help":
+        elif self.args.command == "!help":
             messages = parser.format_help().split('\n')
         
         # send messages
@@ -118,7 +83,72 @@ class AcmBotModule(Module):
         # Stop any other modules from handling this message.
         return True
 
+    def get_event_messages(self, func=None):
+        config = self.controller.config
+        
+        if not config.has_section("acmbot"):
+            _log.info("No config section for acmbot")
+            return
+
+        if config.has_option("acmbot", "base_url"):
+            base_url = config.get("acmbot", "base_url")
+        else:
+            return
+
+        if self.args.limit:
+            events_limit = self.args.limit
+        elif config.has_option("acmbot", "events_limit"):
+            try:
+                events_limit = int(config.get("acmbot", "events_limit"))
+            except TypeError:
+                events_limit = None
+        else:
+            events_limit = None
+
+        events_html = urllib.urlopen(
+            '{}/files/events.yaml'.format(base_url)
+        ).read()
+
+        events = yaml.load(events_html)
+        length_events = len(events)
+
+        if func:
+            events = func(events)
+        
+        if events_limit and events_limit >= 0:
+            events = events[:events_limit]
+
+        messages = []
+        for i, event in reversed(events):
+            
+            if 'time' in event:
+                time = get_time(event['time'])
+            elif config.has_option("acmbot", "default_time"):
+                time = get_time(config.get("acmbot", "default_time"))
+            else:
+                time = None
+
+            message = '{} - {:%a, %b %d}'.format(
+                event['title'], get_date(event),
+            )
+
+            if time:
+                message += ' @ {:%I:%M%p}'.format(time)
+
+            message += ' - {}/event.php?event={}'.format(
+                base_url, str(length_events - i - 1),
+            )
+
+            messages.append(message)
+        return messages
+
 def get_time(time_str):
     return datetime.datetime.strptime(time_str, '%H:%M').time()
+
+def get_date(entry):
+    return datetime.datetime.strptime(
+        entry['date'],
+        '%m-%d-%Y',
+    ).date()
     
 module = AcmBotModule
