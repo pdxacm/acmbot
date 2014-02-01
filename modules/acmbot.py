@@ -48,9 +48,9 @@ class AcmBotModule(Module):
                 messages = command_events.format_help().split('\n')
             else:
                 def sort(events):
-                    events = sorted(events, key=get_date, reverse=True)
+                    events = sorted(events, key=lambda x: x['date'], reverse=True)
                     events = list(enumerate(takewhile(
-                        lambda x: get_date(x) >= datetime.date.today(),
+                        lambda x: x['date'] >= datetime.date.today(),
                         events,
                     )))
                     return events
@@ -61,13 +61,13 @@ class AcmBotModule(Module):
                 messages = command_events.format_help().split('\n')
             else:
                 def today_sort(events):
-                    events = sorted(events, key=get_date, reverse=True)
+                    events = sorted(events, key=lambda x: x['date'], reverse=True)
                     events = list(enumerate(takewhile(
-                        lambda x: get_date(x) >= datetime.date.today(),
+                        lambda x: x['date'] >= datetime.date.today(),
                         events,
                     )))
                     events = filter(
-                        lambda (i, event): get_date(event) == datetime.date.today(),
+                        lambda (i, event): event['date'] == datetime.date.today(),
                         events
                     )
                     return events
@@ -129,7 +129,7 @@ class AcmBotModule(Module):
                 time = None
 
             message = '{} - {:%a, %b %d}'.format(
-                event['title'], get_date(event),
+                event['title'], event['date'],
             )
 
             if time:
@@ -144,11 +144,5 @@ class AcmBotModule(Module):
 
 def get_time(time_str):
     return datetime.datetime.strptime(time_str, '%H:%M').time()
-
-def get_date(entry):
-    return datetime.datetime.strptime(
-        entry['date'],
-        '%m-%d-%Y',
-    ).date()
     
 module = AcmBotModule
