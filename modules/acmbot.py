@@ -116,8 +116,8 @@ class AcmBotModule(Module):
             events = func(events)
         
         if events_limit and events_limit >= 0:
-            events = events[:events_limit]
-
+            events = events[len(events)-events_limit:]
+        
         messages = []
         for i, event in reversed(events):
             
