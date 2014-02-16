@@ -148,7 +148,7 @@ class AcmBotModule(Module):
         if func:
             events = func(events)
         
-        if events_limit and events_limit >= 0:
+        if events_limit and events_limit >= 0 and len(events) >= events_limit:
             events = events[len(events)-events_limit:]
         
         messages = []
