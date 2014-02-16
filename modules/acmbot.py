@@ -21,6 +21,7 @@ command_today = parser.add_command('!today')
 command_today.add_argument('--limit', type=int)
 command_tomorrow = parser.add_command('!tomorrow')
 command_tomorrow.add_argument('--limit', type=int)
+command_next = parser.add_command('!next')
 
 class AcmBotModule(Module):
     
@@ -92,6 +93,15 @@ class AcmBotModule(Module):
                     return events
                 messages = self.get_event_messages(tomorrow_sort)
 
+        elif self.args.command == '!next':
+            if self.args.help:
+                messages = command_events.format_help().split('\n')
+            else:
+                def tomorrow_sort(events):
+                    events = sorted(events, key=lambda x: x['date'], reverse=True)
+                    return [ (0, events[0]) ]
+                messages = self.get_event_messages(tomorrow_sort)
+
         elif self.args.command == "!help":
             messages = parser.format_help().split('\n')
         
@@ -114,7 +124,7 @@ class AcmBotModule(Module):
         else:
             return
 
-        if self.args.limit:
+        if getattr(self.args, 'limit', None):
             events_limit = self.args.limit
         elif config.has_option("acmbot", "events_limit"):
             try:
