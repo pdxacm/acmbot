@@ -22,6 +22,17 @@ command_today.add_argument('--limit', type=int)
 command_tomorrow = parser.add_command('!tomorrow')
 command_tomorrow.add_argument('--limit', type=int)
 command_next = parser.add_command('!next')
+command_day = parser.add_command('!day')
+command_day.add_argument('--limit', type=int)
+command_day.add_argument(
+    'day',
+    nargs=1,
+    choices=[
+        'monday', 'tuesday', 'wednesday', 'thursday', 
+        'friday', 'saturday', 'sunday',
+        ],
+    default=None,
+)
 
 class AcmBotModule(Module):
     
@@ -46,6 +57,8 @@ class AcmBotModule(Module):
         # http://docs.python.org/2/library/logging.html
         _log.info("Responding to %r in %r", self.actor, self.recipient)
         
+        messages = []
+
         if self.args.command == "!events":
             if self.args.help:
                 messages = command_events.format_help().split('\n')
@@ -105,6 +118,58 @@ class AcmBotModule(Module):
                     )))
                     return [ events[-1] ]
                 messages = self.get_event_messages(tomorrow_sort)
+
+        elif self.args.command == '!day':
+            if self.args.help:
+                messages = command_events.format_help().split('\n')
+            elif self.args.day:
+                # The date to filter by will be constructed.
+
+                today = datetime.date.today()
+                
+                # Get the int encoding of the day of the week.
+                # Monday = 0 ... Sunday = 6
+                today_weekday = today.weekday()
+
+
+                wanted_weekday = [
+                    'monday', 'tuesday', 'wednesday', 'thursday',
+                    'friday', 'saturday', 'sunday',
+                ].index(self.args.day[0].lower())
+
+                if wanted_weekday >= today_weekday:
+                    # If today is Wednesday and Wednesday is wanted then
+                    # the day should not be changed.
+                    #     Wednesday - Wednesday = 2 - 2 = 0
+                    # If today is Tuesday and Friday is wanted then
+                    # the day should be increased by 3
+                    #     Friday - Tuesday = 4 - 1 = 3
+                    days = wanted_weekday - today_weekday
+                else:
+                    # If today is Friday and Monday is wanted then the
+                    # day should be increased by 3.
+                    #    7 - Friday + Monday = 7 - 4 + 0 = 3 
+                    # If today is Thursday and Tuesday is wanted then the
+                    # day should be increased by 5.
+                    #    7 - Thursday + Tuesday = 7 - 3 + 1 = 5
+                    days = 7 - today_weekday + wanted_weekday
+            
+                # Construct the date by adding the calculated number of
+                # days.
+                date = today + datetime.timedelta(days=days)
+
+                def day_sort(events):
+                    events = sorted(events, key=lambda x: x['date'], reverse=True)
+                    events = list(enumerate(takewhile(
+                        lambda x: x['date'] >= date,
+                        events,
+                    )))
+                    events = filter(
+                        lambda (i, event): event['date'] == date,
+                        events
+                    )
+                    return events
+                messages = self.get_event_messages(day_sort)
 
         elif self.args.command == "!help":
             messages = parser.format_help().split('\n')
