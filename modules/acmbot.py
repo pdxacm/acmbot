@@ -99,7 +99,11 @@ class AcmBotModule(Module):
             else:
                 def tomorrow_sort(events):
                     events = sorted(events, key=lambda x: x['date'], reverse=True)
-                    return [ (0, events[0]) ]
+                    events = list(enumerate(takewhile(
+                        lambda x: x['date'] >= datetime.date.today(),
+                        events,
+                    )))
+                    return [ events[-1] ]
                 messages = self.get_event_messages(tomorrow_sort)
 
         elif self.args.command == "!help":
