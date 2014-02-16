@@ -19,6 +19,8 @@ command_events = parser.add_command('!events')
 command_events.add_argument('--limit', type=int)
 command_today = parser.add_command('!today')
 command_today.add_argument('--limit', type=int)
+command_tomorrow = parser.add_command('!tomorrow')
+command_tomorrow.add_argument('--limit', type=int)
 
 class AcmBotModule(Module):
     
@@ -72,6 +74,23 @@ class AcmBotModule(Module):
                     )
                     return events
                 messages = self.get_event_messages(today_sort)
+
+        elif self.args.command == '!tomorrow':
+            if self.args.help:
+                messages = command_events.format_help().split('\n')
+            else:
+                def tomorrow_sort(events):
+                    events = sorted(events, key=lambda x: x['date'], reverse=True)
+                    events = list(enumerate(takewhile(
+                        lambda x: x['date'] >= datetime.date.today() + datetime.timedelta(days=1),
+                        events,
+                    )))
+                    events = filter(
+                        lambda (i, event): event['date'] == datetime.date.today() + datetime.timedelta(days=1),
+                        events
+                    )
+                    return events
+                messages = self.get_event_messages(tomorrow_sort)
 
         elif self.args.command == "!help":
             messages = parser.format_help().split('\n')
