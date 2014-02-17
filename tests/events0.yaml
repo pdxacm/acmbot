@@ -1,0 +1,28 @@
+---
+- title: "Title 0"
+  date: 2014-03-14
+  time: '16:30'
+  speaker: Cameron White 
+  description: |
+      "Description 0"
+
+- title: "Title 1"
+  date: 2014-03-13
+  time: '17:31'
+  speaker: Adam Curry  
+  description: |
+      "Description 1"
+
+- title: "Title 2"
+  date: 2014-02-21
+  time: '15:12'
+  speaker: John C. Dvorak 
+  description: |
+      "Description 2"
+
+- title: "Title 3"
+  date: 2014-01-14
+  time: '02:44'
+  speaker: Bart Massey 
+  description: |
+      "Description 3"
