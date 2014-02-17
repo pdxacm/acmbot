@@ -26,6 +26,7 @@ if __name__ == "__main__":
             'kitnirc',
             'BotParse',
             'pyyaml',
+            'nose',
         ],
         include_package_data=True,
     )
