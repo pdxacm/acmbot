@@ -6,7 +6,6 @@ import logging
 import argparse
 import urllib
 from kitnirc.modular import Module
-from botparse import BotParse
 import yaml
 import datetime
 import urllib
@@ -15,25 +14,10 @@ from itertools import takewhile, dropwhile
  
 _log = logging.getLogger(__name__)
 
-parser = BotParse()
-command_events = parser.add_command('!events')
-command_events.add_argument('--limit', type=int)
-command_today = parser.add_command('!today')
-command_today.add_argument('--limit', type=int)
-command_tomorrow = parser.add_command('!tomorrow')
-command_tomorrow.add_argument('--limit', type=int)
-command_next = parser.add_command('!next')
-command_day = parser.add_command('!day')
-command_day.add_argument('--limit', type=int)
-command_day.add_argument(
-    'day',
-    nargs=1,
-    choices=[
-        'monday', 'tuesday', 'wednesday', 'thursday', 
-        'friday', 'saturday', 'sunday',
-        ],
-    default=None,
-)
+weekdays = [
+    'monday', 'tuesday', 'wednesday', 'thursday', 
+    'friday', 'saturday', 'sunday',
+]
 
 class AcmBotModule(Module):
     
@@ -46,52 +30,42 @@ class AcmBotModule(Module):
         self.message = message
 
         self.read_config()
+        
+        message = message.split()
+        
+        if message[0] != '{}:'.format(self.client.user.nick):
+            return True
 
-        # Only pay attention if addressed directly in channels
-        try:
-            self.args = parser.parse_args(self.message.split())
-        except (NameError, TypeError):
-            _log.debug("message not reconized %r", self.message)
-            return
-
+        if len(message) >= 2:
+            command = message[1].lower()
+            print(command)
+        else:
+            _log.debug("The user did not enter a valid command")
+            return True
+        
         # Log a message to the INFO log level - see here for more details:
         # http://docs.python.org/2/library/logging.html
         _log.info("Responding to %r in %r", self.actor, self.recipient)
+
+        if command == "events":
+            messages = self.do_command(command_events)
         
-        if self.args.command == "!events":
-            if self.args.help:
-                messages = command_events.format_help().split('\n')
-            else:
-                messages = self.do_command(command_events)
-        
-        elif self.args.command == '!today':
-            if self.args.help:
-                messages = command_today.format_help().split('\n')
-            else:
-                messages = self.do_command(command_today)
+        elif command == 'today':
+            messages = self.do_command(command_today)
 
-        elif self.args.command == '!tomorrow':
-            if self.args.help:
-                messages = command_tomorrow.format_help().split('\n')
-            else:
-                messages = self.do_command(command_tomorrow)
+        elif command == 'tomorrow':
+            messages = self.do_command(command_tomorrow)
 
-        elif self.args.command == '!next':
-            if self.args.help:
-                messages = command_next.format_help().split('\n')
-            else:
-                messages = self.do_command(command_next)
+        elif command == 'next':
+            messages = self.do_command(command_next)
 
-        elif self.args.command == '!day':
-            if self.args.help:
-                messages = command_day.format_help().split('\n')
-            elif self.args.day:
-                messages = self.do_command(
-                    lambda events: command_day(events, self.args.day),
-                )
+        elif command in weekdays:
+            messages = self.do_command(
+                lambda events: command_day(events, command),
+            )
 
-        elif self.args.command == "!help":
-            messages = parser.format_help().split('\n')
+        elif command == "help":
+            pass
         
         # send messages
         for message in messages:
@@ -108,9 +82,7 @@ class AcmBotModule(Module):
 
         config = self.controller.config
 
-        if hasattr(self.args, 'limit'):
-            events_limit = self.args.limit
-        elif config.has_option("acmbot", "events_limit"):
+        if config.has_option("acmbot", "events_limit"):
             try:
                 events_limit = int(config.get("acmbot", "events_limit"))
             except TypeError:
@@ -233,7 +205,7 @@ def command_day(events, weekday):
     # Monday = 0 ... Sunday = 6
     today_weekday = today.weekday()
     
-    days = weekday_difference(today_weekday, weekday[0])
+    days = weekday_difference(today_weekday, weekday)
 
     # Construct the date by adding the calculated number of
     # days.
