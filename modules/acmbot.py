@@ -33,7 +33,7 @@ class AcmBotModule(Module):
         
         message = message.split()
         
-        if message[0] != '{}:'.format(self.client.user.nick):
+        if message[0].lower() != '{}:'.format(self.client.user.nick.lower()):
             return True
 
         if len(message) >= 2:
