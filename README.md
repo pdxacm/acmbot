@@ -1,6 +1,8 @@
 acmbot
 ======
 
+[![Build Status](https://travis-ci.org/pdxacm/acmbot.png?branch=master)](https://travis-ci.org/pdxacm/acmbot)
+
 Bot for the PDX acm
 
 ## Install
