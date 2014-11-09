@@ -63,9 +63,11 @@ class AcmBotModule(Module):
             messages = self.do_command(
                 lambda events: command_day(events, command),
             )
+        elif command == 'prev':
+            messages = self.do_command(command_prev)
 
         elif command == "help":
-            pass
+            messages = ["I respond to: events, today, tomorrow, next, prev, or weekdays."]
         
         # send messages
         for message in messages:
@@ -219,8 +221,18 @@ def command_events(events):
             lambda events: filter_take_date_range(events, None, date)
     )
 
+def command_old_events(events):
+    date = datetime.date.today()
+    return select_events(
+            events,
+            lambda events: filter_take_date_range(events, date, None)
+    ) 
+
 def command_next(events):
     return command_events(events)[-1:]
+
+def command_prev(events):
+    return command_old_events(events)[0:1]
 
 def weekday_difference(from_weekday, to_weekday):
 
